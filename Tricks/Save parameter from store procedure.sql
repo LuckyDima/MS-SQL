@@ -1,0 +1,1 @@
+DECLARE @dbName nvarchar(128) = 'myDb' DECLARE @siteId int DECLARE @SQL nvarchar(max) = N'SELECT TOP 1 @siteId = Id FROM ' + quotename(@dbName) + N'..myTbl' exec sp_executesql @SQL, N'@siteId int out', @siteId out select @siteId

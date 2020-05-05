@@ -1,0 +1,1 @@
+http://stackoverflow.com/questions/22825147/how-to-simulate-deadlock-on-sql-server

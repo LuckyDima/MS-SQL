@@ -1,0 +1,35 @@
+Row data size consists of a 24-byte header, an index pointers array, which is eight 
+bytes per index, and the payload (actual row data) size.
+For example, if your 
+table has 1,000,000 rows and three indexes, and each row is about 200 bytes on 
+average, you will need (24 + 3 * 8 + 200) * 1,000,000 = ~236.5 MB of memory to 
+store row data without any versioning overhead included in this number. Do 
+not forget that every off-row column adds an extra 54+ bytes to store off-row row 
+header and row identifiers. 
+
+Hash indexes use eight bytes per bucket. If a table has two hash indexes defined 
+with 1,500,000 buckets each, SQL Server will create indexes with 2,097,152 
+buckets, rounding the number of buckets specified in the index properties to 
+the next power of two. Those two indexes will use 2,097,152 * 2 * 8 = 32 MB of 
+memory.
+
+Nonclustered indexes’ memory usage is based on the number of unique index 
+keys and index key size. If a table has a range index with 250,000 unique 
+key values, and each key value on average uses 30 bytes, it would use (30 + 
+8(pointer)) * 250,000 = ~9 MB of memory. You can ignore the page header and 
+non-leaf pages in your estimation, as their sizes are insignificant compared to 
+leaf-level row size. 
+
+Row-versioning memory estimation depends on the duration of the longest 
+transactions and the average number of data modifications (inserts and updates) 
+per second. For example, if some processes in a system have ten-second 
+transactions and, on average, the system handles 1,000 data modifications per 
+second, you can estimate: 10 * 1,000 * 248(row size) = ~2.4 MB of memory for 
+row-versioning storage.
+
+
+It is almost impossible to estimate the exact disk storage space required for In-Memory OLTP data. It 
+depends on the workload, rate of change of the data, and frequency of the CHECKPOINT and merge processes. 
+As a general rule, you should reserve at least two to three times more space on disk than the space used by 
+data rows in-memory. Remember that indexes do not take up any disk space, and they are recreated when 
+the data is loaded into memory
