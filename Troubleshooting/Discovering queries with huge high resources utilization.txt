@@ -1,0 +1,134 @@
+create proc GetQueriesExecutionStatistics
+    @top  int         = 50,
+    @sort varchar (3) = null -- CPU/IO/by default is total cost
+with execute as owner
+as
+begin
+
+/* 
+example:
+exec GetQueriesStatistics @sort = 'CPU'
+*/
+    set nocount on;
+
+    ;
+
+    with xmlnamespaces
+    (
+        'http://schemas.microsoft.com/sqlserver/2004/07/showplan' as sql
+    )
+    select general_query.*
+    from
+           (
+               select      top (@top)
+                           rgrp.name          as rg_pool_name,
+                           db_Name(qst.dbid)  as db_name,
+                           qst.text           as sql_text,
+                           qp.query_plan,
+                           qst.statement_text as select_statement,
+                           qps2.statement_optimization_level,
+                           qps2.statement_optimization_early_abort_reason,
+                           (
+                               select
+                                   sum(ro.SubTreeCost.value(
+                                                               N'@EstimatedTotalSubtreeCost',
+                                                               'float'
+                                                           )
+                                      )
+                               from
+                                   qp.query_plan.nodes(N'//sql:Batch/sql:Statements/sql:StmtSimple/sql:QueryPlan[1]/sql:RelOp[1]') as ro(SubTreeCost)
+                           )                  as Totalcost,
+                           qst.last_execution_time,
+                           qst.execution_count,
+                           qst.total_elapsed_time,
+                           qst.last_elapsed_time,
+                           qst.min_elapsed_time,
+                           qst.max_elapsed_time,
+                           qst.total_worker_time,
+                           qst.last_worker_time,
+                           qst.min_worker_time,
+                           qst.max_worker_time,
+                           qst.total_physical_reads,
+                           qst.last_physical_reads,
+                           qst.min_physical_reads,
+                           qst.max_physical_reads,
+                           qst.total_logical_writes,
+                           qst.last_logical_writes,
+                           qst.min_logical_writes,
+                           qst.max_logical_writes,
+                           qst.total_logical_reads,
+                           qst.last_logical_reads,
+                           qst.min_logical_reads,
+                           qst.max_logical_reads,
+                           qst.min_spills,
+                           qst.max_spills,
+                           qst.total_spills,
+                           qst.last_spills,
+                           qst.total_clr_time,
+                           qst.last_clr_time,
+                           qst.min_clr_time,
+                           qst.max_clr_time
+               from
+                           (
+                               select
+                                           *,
+                                           substring(
+                                                        st.text,
+                                                        (qs.statement_start_offset / 2) + 1,
+                                                        ((case qs.statement_end_offset
+                                                              when -1 then
+                                                                  dataLength(st.text)
+                                                              else
+                                                                  qs.statement_end_offset
+                                                          end - qs.statement_start_offset
+                                                         ) / 2
+                                                        ) + 1
+                                                    )          as statement_text,
+                                           row_Number() over (partition by qs.plan_handle
+                                                              order by qs.statement_start_offset
+                                                             ) as statement_id
+                               from
+                                           sys.dm_exec_query_stats             as qs
+                               cross apply sys.dm_exec_sql_text(qs.sql_handle) as st
+                           )                                       as qst
+               cross apply sys.dm_exec_query_plan(qst.plan_handle) as qp
+               cross apply
+                           (
+                               select
+                                   row_Number() over (order by qps1.statement_id) as rel_statement_id,
+                                   qps1.statement_optimization_level,
+                                   qps1.statement_sub_tree_cost,
+                                   qps1.statement_optimization_early_abort_reason
+                               from
+                                   (
+                                       select
+                                           sel.StmtSimple.value('@StatementId', 'int'),
+                                           sel.StmtSimple.value('@StatementSubTreeCost', 'float'),
+                                           sel.StmtSimple.value('@StatementOptmLevel', 'varchar(30)'),
+                                           sel.StmtSimple.value(
+                                                                   '@StatementOptmEarlyAbortReason',
+                                                                   'varchar(30)'
+                                                               )
+                                       from
+                                           qp.query_plan.nodes(N'//sql:Batch/sql:Statements/sql:StmtSimple[@StatementType = "SELECT"]') as sel(StmtSimple)
+                                   ) as qps1(statement_id, statement_sub_tree_cost, statement_optimization_level, statement_optimization_early_abort_reason)
+                           ) as qps2
+               left join   sys.dm_exec_cached_plans                cp
+               on          cp.plan_handle = qst.plan_handle
+               join        sys.dm_resource_governor_resource_pools rgrp
+               on          rgrp.pool_id   = cp.pool_id
+               where
+                           qps2.rel_statement_id = qst.statement_id
+               and qst.dbid                      > 4
+           ) general_query
+    order by
+           case
+               when @sort = 'IO' then
+                   general_query.last_logical_reads
+                   + general_query.last_logical_writes
+               when @sort = 'CPU' then
+                   general_query.last_worker_time
+               else
+                   general_query.Totalcost
+           end desc;
+end;
