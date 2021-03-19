@@ -1,0 +1,46 @@
+select
+            s.session_id,
+            r.status,
+            r.blocking_session_id,
+            r.wait_type,
+            wait_resource,
+            r.wait_time / (1000 * 60)          'wait_time(Min)',
+            r.cpu_time,
+            r.logical_reads,
+            r.reads,
+            r.writes,
+            r.total_elapsed_time / (1000 * 60) 'total_elapsed_time(Min)',
+            substring(
+                         st.text,
+                         (r.statement_start_offset / 2) + 1,
+                         ((case r.statement_end_offset
+                               when -1 then
+                                   dataLength(st.text)
+                               else
+                                   r.statement_end_offset
+                           end - r.statement_start_offset
+                          ) / 2
+                         ) + 1
+                     )                         as statement_text,
+            coalesce(
+                        quoteName(db_Name(st.dbid)) + N'.'
+                        + quoteName(object_Schema_Name(st.objectid, st.dbid)) + N'.'
+                        + quoteName(object_Name(st.objectid, st.dbid)),
+                        ''
+                    )                          as command_text,
+            r.command,
+            qp.query_plan,
+            s.login_name,
+            s.host_name,
+            s.program_name,
+            s.last_request_end_time,
+            s.login_time,
+            r.open_transaction_count
+from
+            sys.dm_exec_sessions               as s
+join        sys.dm_exec_requests               as r
+on          r.session_id = s.session_id
+cross apply sys.dm_exec_sql_text(r.sql_handle) as st
+cross apply sys.dm_exec_query_plan(r.plan_handle) as qp
+where       r.session_id != @@spid
+order by    r.cpu_time desc;
