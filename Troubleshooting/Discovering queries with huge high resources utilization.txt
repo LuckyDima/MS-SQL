@@ -1,11 +1,17 @@
-create proc GetQueriesExecutionStatistics
-    @top  int         = 50,
-    @sort varchar (3) = null -- CPU/IO/by default is total cost
+set quoted_identifier on;
+
+set ansi_nulls on;
+go
+
+create or alter proc GetQueriesExecutionStatistics
+    @top  int           = 50,
+    @sort varchar (3)   = 'CPU',       -- CPU/IO/
+    @type varchar (256) = 'Adhoc,Proc' --adhoc/proc
 with execute as owner
 as
 begin
 
-/* 
+ /* 
 example:
 exec GetQueriesStatistics @sort = 'CPU'
 */
@@ -23,6 +29,9 @@ exec GetQueriesStatistics @sort = 'CPU'
                select      top (@top)
                            rgrp.name          as rg_pool_name,
                            db_Name(qst.dbid)  as db_name,
+                           cp.objtype         as query_type,
+						   s.hostname,
+						   s.nt_username,
                            qst.text           as sql_text,
                            qp.query_plan,
                            qst.statement_text as select_statement,
@@ -117,9 +126,15 @@ exec GetQueriesStatistics @sort = 'CPU'
                on          cp.plan_handle = qst.plan_handle
                join        sys.dm_resource_governor_resource_pools rgrp
                on          rgrp.pool_id   = cp.pool_id
+			   left join sys.dm_exec_requests er on er.plan_handle = cp.plan_handle
+			   left join sys.sysprocesses s ON s.spid = er.session_id and s.spid <> @@spid
                where
                            qps2.rel_statement_id = qst.statement_id
-               and qst.dbid                      > 4
+               and cp.objtype in
+                   (
+                       select rTrim(lTrim(value))
+                       from   string_Split(@type, ',')
+                   )
            ) general_query
     order by
            case
@@ -132,3 +147,4 @@ exec GetQueriesStatistics @sort = 'CPU'
                    general_query.Totalcost
            end desc;
 end;
+go
