@@ -20,7 +20,7 @@ ALTER RESOURCE GOVERNOR RECONFIGURE;
 GO
 */
 
-
+-- Example script in job
 EXEC sp_WhoIsActive
     @format_output = 0,
     @get_plans = 1,
@@ -28,3 +28,19 @@ EXEC sp_WhoIsActive
 
 WAITFOR DELAY '00:00:05'
 GO 60
+
+
+
+USE [msdb]
+GO
+
+EXEC msdb.dbo.sp_add_alert @name=N'CPU Usage above 20%', 
+		@message_id=0, 
+		@severity=0, 
+		@enabled=1, 
+		@delay_between_responses=5, 
+		@include_event_description_in=0, 
+		@category_name=N'[Uncategorized]', 
+		@performance_condition=N'Resource Pool Stats|CPU usage %|internal|>|0.2', 
+		@job_id=N'00000000-0000-0000-0000-0000000000'
+GO
