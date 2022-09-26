@@ -1,0 +1,30 @@
+/*
+It will work when you have enabled a resource governor.
+But it's impossible to switch on for Standard Edition, ONLY ENTERPRISE!
+
+--Example dummy function 
+
+USE master;
+GO
+CREATE FUNCTION dbo.fnDummyClassifier()
+RETURNS sysname
+WITH SCHEMABINDING
+AS
+BEGIN
+    RETURN N'default'; --every session is assigned to the "default" pool.
+END
+GO
+ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = [dbo].[fnDummyClassifier]);
+GO
+ALTER RESOURCE GOVERNOR RECONFIGURE;
+GO
+*/
+
+
+EXEC sp_WhoIsActive
+    @format_output = 0,
+    @get_plans = 1,
+    @destination_table = 'dba.dbo.quick_debug'
+
+WAITFOR DELAY '00:00:05'
+GO 60
