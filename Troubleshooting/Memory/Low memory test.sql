@@ -1,29 +1,29 @@
--- Быстрый тест проблем с памятью
--- По мотивам: http://bit.ly/LkT05M
+-- Р‘С‹СЃС‚СЂС‹Р№ С‚РµСЃС‚ РїСЂРѕР±Р»РµРј СЃ РїР°РјСЏС‚СЊСЋ
+-- РџРѕ РјРѕС‚РёРІР°Рј: http://bit.ly/LkT05M
 WITH RingBufferXML
 AS(SELECT CAST(Record AS XML) AS RBR FROM sys .dm_os_ring_buffers
    WHERE ring_buffer_type = 'RING_BUFFER_RESOURCE_MONITOR'
   )
-SELECT DISTINCT 'Зафиксированы проблемы' =
+SELECT DISTINCT 'Р—Р°С„РёРєСЃРёСЂРѕРІР°РЅС‹ РїСЂРѕР±Р»РµРјС‹' =
           CASE
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]','tinyint')  = 0 AND
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]','tinyint')   = 2 
-                    THEN 'Недостаточно физической памяти для системы'
+                    THEN 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ С„РёР·РёС‡РµСЃРєРѕР№ РїР°РјСЏС‚Рё РґР»СЏ СЃРёСЃС‚РµРјС‹'
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]','tinyint')  = 0 AND 
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]','tinyint')   = 4 
-                    THEN 'Недостаточно виртуальной памяти для системы' 
+                    THEN 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РІРёСЂС‚СѓР°Р»СЊРЅРѕР№ РїР°РјСЏС‚Рё РґР»СЏ СЃРёСЃС‚РµРјС‹' 
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]', 'tinyint') = 2 AND 
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]','tinyint')   = 0 
-                    THEN'Недостаточно физической памяти для запросов'
+                    THEN'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ С„РёР·РёС‡РµСЃРєРѕР№ РїР°РјСЏС‚Рё РґР»СЏ Р·Р°РїСЂРѕСЃРѕРІ'
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]', 'tinyint') = 4 AND 
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]', 'tinyint')  = 4
-                    THEN 'Недостаточно виртуальной памяти для запросов и системы'
+                    THEN 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РІРёСЂС‚СѓР°Р»СЊРЅРѕР№ РїР°РјСЏС‚Рё РґР»СЏ Р·Р°РїСЂРѕСЃРѕРІ Рё СЃРёСЃС‚РµРјС‹'
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]','tinyint')  = 2 AND 
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]','tinyint')   = 4 
-                    THEN 'Недостаточно виртуальной памяти для системы и физической для запросов'
+                    THEN 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РІРёСЂС‚СѓР°Р»СЊРЅРѕР№ РїР°РјСЏС‚Рё РґР»СЏ СЃРёСЃС‚РµРјС‹ Рё С„РёР·РёС‡РµСЃРєРѕР№ РґР»СЏ Р·Р°РїСЂРѕСЃРѕРІ'
                     WHEN XMLRecord.value('(ResourceMonitor/IndicatorsProcess)[1]', 'tinyint') = 2 AND 
                          XMLRecord.value('(ResourceMonitor/IndicatorsSystem)[1]', 'tinyint')  = 2 
-                    THEN 'Недостаточно физической памяти для системы и запросов'
+                    THEN 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ С„РёР·РёС‡РµСЃРєРѕР№ РїР°РјСЏС‚Рё РґР»СЏ СЃРёСЃС‚РµРјС‹ Рё Р·Р°РїСЂРѕСЃРѕРІ'
          END
 FROM        RingBufferXML
 CROSS APPLY RingBufferXML.RBR.nodes ('Record') Record (XMLRecord)
