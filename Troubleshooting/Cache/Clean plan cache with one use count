@@ -1,0 +1,19 @@
+DECLARE @plan_handle varbinary(64)
+
+DECLARE db_cursor CURSOR FOR 
+SELECT plan_handle
+FROM sys.dm_exec_cached_plans
+GROUP BY objtype, plan_handle
+HAVING  SUM(CASE WHEN usecounts = 1 THEN 1 ELSE 0 END)  = 1
+
+OPEN db_cursor  
+FETCH NEXT FROM db_cursor INTO @plan_handle  
+
+WHILE @@FETCH_STATUS = 0  
+BEGIN  
+    DBCC FREEPROCCACHE (@plan_handle);  
+    FETCH NEXT FROM db_cursor INTO @plan_handle 
+END 
+
+CLOSE db_cursor  
+DEALLOCATE db_cursor 
