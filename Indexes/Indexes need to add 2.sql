@@ -1,16 +1,16 @@
--- Не забудьте поправить сценарий создания индексов, 
--- убрав лишние запятые или пустую инструкцию INCLUDE
-SELECT 	[Рекомендуемый индекс]= 
+-- РќРµ Р·Р°Р±СѓРґСЊС‚Рµ РїРѕРїСЂР°РІРёС‚СЊ СЃС†РµРЅР°СЂРёР№ СЃРѕР·РґР°РЅРёСЏ РёРЅРґРµРєСЃРѕРІ, 
+-- СѓР±СЂР°РІ Р»РёС€РЅРёРµ Р·Р°РїСЏС‚С‹Рµ РёР»Рё РїСѓСЃС‚СѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ INCLUDE
+SELECT 	[ГђГҐГЄГ®Г¬ГҐГ­Г¤ГіГҐГ¬Г»Г© ГЁГ­Г¤ГҐГЄГ±]= 
 		 '-- CREATE INDEX [IX_' + OBJECT_NAME(mid.object_id) + '_' +
 		CAST(mid.index_handle AS nvarchar) + '] ON ' + 
 		mid.statement + ' (' + ISNULL(mid.equality_columns,'') + 
 		', ' + ISNULL(mid.inequality_columns,'') + 
 		') INCLUDE (' + ISNULL(mid.included_columns,'') + ');', 
-	[Число компиляций] = migs.unique_compiles,
-	[Количество операций поиска] = migs.user_seeks,
-	[Количество операций просмотра] = migs.user_scans,
-	[Средняя стоимость ] = CAST(migs.avg_total_user_cost AS int),
-	[Средний процент выигрыша] = CAST(migs.avg_user_impact AS int)
+	[Г—ГЁГ±Г«Г® ГЄГ®Г¬ГЇГЁГ«ГїГ¶ГЁГ©] = migs.unique_compiles,
+	[ГЉГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г®ГЇГҐГ°Г Г¶ГЁГ© ГЇГ®ГЁГ±ГЄГ ] = migs.user_seeks,
+	[ГЉГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г®ГЇГҐГ°Г Г¶ГЁГ© ГЇГ°Г®Г±Г¬Г®ГІГ°Г ] = migs.user_scans,
+	[Г‘Г°ГҐГ¤Г­ГїГї Г±ГІГ®ГЁГ¬Г®Г±ГІГј ] = CAST(migs.avg_total_user_cost AS int),
+	[Г‘Г°ГҐГ¤Г­ГЁГ© ГЇГ°Г®Г¶ГҐГ­ГІ ГўГ»ГЁГЈГ°Г»ГёГ ] = CAST(migs.avg_user_impact AS int)
 FROM	sys.dm_db_missing_index_groups mig
 JOIN	sys.dm_db_missing_index_group_stats migs 
 ON	migs.group_handle = mig.index_group_handle
