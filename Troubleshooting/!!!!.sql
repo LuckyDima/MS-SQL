@@ -243,11 +243,11 @@ SELECT DB_NAME(ISNULL(s.dbid,1)) AS [Имя базы данных],
 SELECT db_name() [DbName], 
 	schema_name(tbl.schema_id) [SchemaName],
 	tbl.name [TableName], 
-	i.name [IndexName],
+	i.name [IndexName], 
 	p.partition_number AS [PartitionNumber],
 	p.data_compression_desc AS [DataCompression],
 	p.rows  AS [RowCount],
-	'EXEC sys.sp_estimate_data_compression_savings ' + '''' + schema_name(tbl.schema_id) + ''', ''' + tbl.name + + ''', NULL, NULL, ''PAGE''' [CompressionForecast]
+	'EXEC sys.sp_estimate_data_compression_savings ' + '''' + schema_name(tbl.schema_id) + ''', ''' + tbl.name + + ''', '+ CAST(i.index_id AS varchar(16))+', NULL, ''PAGE''' [CompressionForecast]
 FROM sys.tables AS tbl
 LEFT JOIN sys.indexes AS i ON (i.index_id > 0 and i.is_hypothetical = 0) AND (i.object_id=tbl.object_id)
 INNER JOIN sys.partitions AS p ON p.object_id = CAST(tbl.object_id AS int) AND
