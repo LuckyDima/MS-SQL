@@ -1,0 +1,37 @@
+--Generate sequense numbers
+/*Variant 1*/
+SET NOCOUNT ON;
+DECLARE @I INT = 1000000;
+WITH                                   
+   -- 10 
+   num1(n) AS
+      (
+       SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL
+       SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1 UNION ALL SELECT 1
+      ),               
+   -- 10 * 10 
+   num2(n) AS (SELECT 1 FROM num1 CROSS JOIN num1 AS a),
+   -- 100 * 100 
+   num3(n) AS (SELECT 1 FROM num2 CROSS JOIN num2 AS a),
+  -- 10000 * 10000 
+   num4(n) AS (SELECT 1 FROM num3 CROSS JOIN num3 AS a)
+  SELECT TOP (@I)
+         Number = ROW_NUMBER() OVER (ORDER BY N)
+  FROM num4;
+
+----------------------------------------------------
+/*Variant 2*/
+SET NOCOUNT ON;
+DECLARE @i INT = 1;
+;WITH cte1 (a) AS 
+(
+SELECT @i 
+UNION ALL
+SELECT cte1.a + 1 FROM cte1 WHERE cte1.a < 10
+)
+, cte2 (b) AS (SELECT (c.a-1)*10		  + cte1.a	FROM cte1 CROSS JOIN cte1 c)
+, cte3 (c) AS (SELECT (c.a-1)*100		  + cte2.b	FROM cte2 CROSS JOIN cte1 c)
+, cte4 (d) AS (SELECT (c.a-1)*1000		+ cte3.c	FROM cte3 CROSS JOIN cte1 c)
+, cte5 (e) AS (SELECT (c.a-1)*10000		+ cte4.d	FROM cte4 CROSS JOIN cte1 c)
+, cte6 (f) AS (SELECT (c.a-1)*100000	+ cte5.e	FROM cte5 CROSS JOIN cte1 c)
+SELECT * FROM cte6
