@@ -1,0 +1,123 @@
+DROP TABLE IF EXISTS ##UserPermissions 
+CREATE TABLE ##UserPermissions 
+(UserType sysname NOT NULL,DatabaseUserName sysname NOT NULL, LoginName NVARCHAR(256) NULL, RoleName NVARCHAR(256) NULL,PermissionType NVARCHAR(256) NULL,
+PermissionState NVARCHAR(256) NULL, ObjectType sysname NULL, SchemaName sysname NULL, ObjectName NVARCHAR(256) NULL,ColumnName NVARCHAR(256) NULL 
+)
+
+EXEC sys.sp_MSforeachdb 
+'USE [?]
+DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
+
+INSERT INTO ##UserPermissions
+SELECT
+CASE princ.type 
+	WHEN ''S'' THEN ''SQL User''
+	WHEN ''U'' THEN ''Windows User''
+	WHEN ''G'' THEN ''Windows Group'' 
+	END, 
+princ.name, 
+ulogin.name, 
+NULL, 
+perm.permission_name, 
+perm.state_desc, 
+CASE perm.class 
+	WHEN 1 THEN obj.type_desc 
+	ELSE perm.class_desc 
+END, 
+objschem.name, 
+CASE perm.class 
+	WHEN 3 THEN permschem.name
+	WHEN 4 THEN imp.name 
+	ELSE OBJECT_NAME(perm.major_id)
+END, 
+ColumnName=col.name
+FROM sys.database_principals AS princ
+     LEFT JOIN sys.server_principals AS ulogin ON ulogin.sid=princ.sid
+     LEFT JOIN sys.database_permissions AS perm ON perm.grantee_principal_id=princ.principal_id
+     LEFT JOIN sys.schemas AS permschem ON permschem.schema_id=perm.major_id
+     LEFT JOIN sys.objects AS obj ON obj.object_id=perm.major_id
+     LEFT JOIN sys.schemas AS objschem ON objschem.schema_id=obj.schema_id
+     LEFT JOIN sys.columns AS col ON col.object_id=perm.major_id AND col.column_id=perm.minor_id
+     LEFT JOIN sys.database_principals AS imp ON imp.principal_id=perm.major_id
+WHERE princ.type IN (''S'', ''U'', ''G'')
+AND princ.name NOT IN (''sys'', ''INFORMATION_SCHEMA'')
+AND(princ.name=@DatabaseUserName OR @DatabaseUserName IS NULL)
+AND(ulogin.name=@LoginName OR @LoginName IS NULL)
+'
+
+EXEC sys.sp_MSforeachdb 
+'USE [?]
+DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
+
+INSERT INTO ##UserPermissions
+SELECT 
+CASE membprinc.type 
+	WHEN ''S'' THEN ''SQL User''
+	WHEN ''U'' THEN ''Windows User''
+	WHEN ''G'' THEN ''Windows Group'' 
+END, 
+membprinc.name, 
+ulogin.name, 
+roleprinc.name, 
+perm.permission_name, 
+perm.state_desc, 
+CASE perm.class 
+	WHEN 1 THEN obj.type_desc 
+	ELSE perm.class_desc 
+END, 
+objschem.name, 
+CASE perm.class 
+	WHEN 3 THEN permschem.name
+	WHEN 4 THEN imp.name 
+	ELSE OBJECT_NAME(perm.major_id)
+END, 
+col.name
+FROM sys.database_role_members AS members
+     JOIN sys.database_principals AS roleprinc ON roleprinc.principal_id=members.role_principal_id
+     JOIN sys.database_principals AS membprinc ON membprinc.principal_id=members.member_principal_id
+     LEFT JOIN sys.server_principals AS ulogin ON ulogin.sid=membprinc.sid
+     LEFT JOIN sys.database_permissions AS perm ON perm.grantee_principal_id=roleprinc.principal_id
+     LEFT JOIN sys.schemas AS permschem ON permschem.schema_id=perm.major_id
+     LEFT JOIN sys.objects AS obj ON obj.object_id=perm.major_id
+     LEFT JOIN sys.schemas AS objschem ON objschem.schema_id=obj.schema_id
+     LEFT JOIN sys.columns AS col ON col.object_id=perm.major_id AND col.column_id=perm.minor_id
+     LEFT JOIN sys.database_principals AS imp ON imp.principal_id=perm.major_id
+WHERE membprinc.type IN (''S'', ''U'', ''G'') 
+AND membprinc.name NOT IN (''sys'', ''INFORMATION_SCHEMA'')
+AND(membprinc.name=@DatabaseUserName OR @DatabaseUserName IS NULL)
+AND(ulogin.name=@LoginName OR @LoginName IS NULL)
+'
+EXEC sys.sp_MSforeachdb 
+'USE [?]
+DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
+
+INSERT INTO ##UserPermissions
+SELECT 
+''{All Users}'', 
+''{All Users}'', 
+''{All Users}'', 
+roleprinc.name, 
+perm.permission_name,
+perm.state_desc,
+CASE perm.class 
+	WHEN 1 THEN obj.type_desc 
+	ELSE perm.class_desc 
+END,
+objschem.name,
+CASE perm.class 
+	WHEN 3 THEN permschem.name
+	WHEN 4 THEN imp.name 
+	ELSE OBJECT_NAME(perm.major_id)
+END,
+col.name
+FROM sys.database_principals AS roleprinc
+     LEFT JOIN sys.database_permissions AS perm ON perm.grantee_principal_id=roleprinc.principal_id
+     LEFT JOIN sys.schemas AS permschem ON permschem.schema_id=perm.major_id
+     JOIN sys.objects AS obj ON obj.object_id=perm.major_id
+     LEFT JOIN sys.schemas AS objschem ON objschem.schema_id=obj.schema_id
+     LEFT JOIN sys.columns AS col ON col.object_id=perm.major_id AND col.column_id=perm.minor_id
+     LEFT JOIN sys.database_principals AS imp ON imp.principal_id=perm.major_id
+WHERE roleprinc.type=''R'' AND roleprinc.name=''public'' AND obj.is_ms_shipped=0 AND(roleprinc.name=@DatabaseUserName OR @DatabaseUserName IS NULL)
+'
+SELECT DISTINCT * FROM ##UserPermissions
+ORDER BY UserType, DatabaseUserName, LoginName, RoleName, SchemaName, ObjectName, ColumnName, PermissionType, PermissionState, ObjectType
