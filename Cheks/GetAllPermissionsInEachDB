@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS ##UserPermissions 
 CREATE TABLE ##UserPermissions 
-(UserType sysname NOT NULL,DatabaseUserName sysname NOT NULL, LoginName NVARCHAR(256) NULL, RoleName NVARCHAR(256) NULL,PermissionType NVARCHAR(256) NULL,
+(DbName sysname, UserType sysname NOT NULL,DatabaseUserName sysname NOT NULL, LoginName NVARCHAR(256) NULL, RoleName NVARCHAR(256) NULL,PermissionType NVARCHAR(256) NULL,
 PermissionState NVARCHAR(256) NULL, ObjectType sysname NULL, SchemaName sysname NULL, ObjectName NVARCHAR(256) NULL,ColumnName NVARCHAR(256) NULL 
 )
 
@@ -9,7 +9,7 @@ EXEC sys.sp_MSforeachdb
 DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
 
 INSERT INTO ##UserPermissions
-SELECT
+SELECT DB_NAME(),
 CASE princ.type 
 	WHEN ''S'' THEN ''SQL User''
 	WHEN ''U'' THEN ''Windows User''
@@ -50,7 +50,7 @@ EXEC sys.sp_MSforeachdb
 DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
 
 INSERT INTO ##UserPermissions
-SELECT 
+SELECT DB_NAME(),
 CASE membprinc.type 
 	WHEN ''S'' THEN ''SQL User''
 	WHEN ''U'' THEN ''Windows User''
@@ -92,7 +92,7 @@ EXEC sys.sp_MSforeachdb
 DECLARE @DatabaseUserName VARCHAR(50), @LoginName VARCHAR(50);
 
 INSERT INTO ##UserPermissions
-SELECT 
+SELECT DB_NAME(),
 ''{All Users}'', 
 ''{All Users}'', 
 ''{All Users}'', 
