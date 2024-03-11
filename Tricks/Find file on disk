@@ -1,0 +1,4 @@
+--Find file on disk
+SELECT TOP (1) * FROM sys.dm_os_enumerate_filesystem(N'c:\folder\','*.*') 
+WHERE is_directory = 0
+ORDER BY last_write_time DESC
