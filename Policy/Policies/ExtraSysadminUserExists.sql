@@ -1,3 +1,12 @@
+IF NOT EXISTS (SELECT * FROM  msdb.dbo.syspolicy_policy_categories WHERE name = 'Internal Check')
+BEGIN 
+	DECLARE @policy_category_id INT;
+	EXEC msdb.dbo.sp_syspolicy_add_policy_category
+		@name = N'Internal Check',
+		@mandate_database_subscriptions = 0,
+		@policy_category_id = @policy_category_id OUTPUT;
+END
+
 DECLARE @object_set_id INT;
 EXEC msdb.dbo.sp_syspolicy_add_object_set @object_set_name = N'Extra sysadmin exists_ObjectSet',
                                           @facet = N'Server',
