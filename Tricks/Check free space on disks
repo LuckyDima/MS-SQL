@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS #CheckDisksSpace;
+
+CREATE TABLE #CheckDisksSpace (
+	Drive VARCHAR(2) NOT NULL
+	, MBFree INT NOT NULL
+	);
+
+INSERT INTO #BackupInfo
+EXEC master.sys.xp_fixeddrives;
+
+SELECT * FROM #BackupInfo;
