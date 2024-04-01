@@ -104,26 +104,38 @@ GO
 
 CREATE OR ALTER VIEW dbo.CheckDatabaseEvents 
 AS
-WITH Target_Data AS
-(
-    SELECT CAST(event_data AS XML) AS event_data
+WITH Target_Data
+AS (SELECT CAST(event_data AS XML) AS event_data
     FROM sys.fn_xe_file_target_read_file(
-        (
-            SELECT TOP (1) CAST(xet.target_data AS XML).value('(EventFileTarget/File/@name)[1]', 'NVARCHAR(MAX)') FileName
-            FROM sys.dm_xe_session_targets xet
-            JOIN sys.dm_xe_sessions xes ON xes.address = xet.event_session_address
-            WHERE xes.name = 'DatabaseEvents' AND xet.target_name = 'event_file'
-            ORDER BY xes.create_time DESC 
-        ), NULL, NULL, NULL
-    )
-)
-SELECT 
-    CONVERT(DATETIME2, SWITCHOFFSET(CONVERT(DATETIMEOFFSET, events.event_data.value('(@timestamp)[1]', 'DATETIME2')), DATENAME(TZOFFSET, SYSDATETIMEOFFSET()))) DatetimeLocal,
-    events.event_data.value('(./@name)[1]', 'sysname') EventName,
-    events.event_data.value('(./data[@name="database_id"]/value)[1]', 'INT') DatabaseId,
-    events.event_data.value('(./data[@name="database_name"]/value)[1]', 'sysname') DatabaseAffected,
-    events.event_data.value('(./action[@name="username"]/value)[1]', 'sysname') UserName,
-    events.event_data.value('(./action[@name="client_app_name"]/value)[1]', 'sysname') Client,
-    events.event_data.value('(./action[@name="sql_text"]/value)[1]', 'sysname') SQLStatement
+         (
+             SELECT TOP (1)
+                    CAST(xet.target_data AS XML).value('(EventFileTarget/File/@name)[1]', 'NVARCHAR(MAX)') FileName
+             FROM sys.dm_xe_session_targets xet
+                 JOIN sys.dm_xe_sessions xes
+                     ON xes.address = xet.event_session_address
+             WHERE xes.name = 'DatabaseEvents'
+                   AND xet.target_name = 'event_file'
+             ORDER BY xes.create_time DESC
+         ),
+         NULL,
+         NULL,
+         NULL
+                                        ) )
+SELECT CONVERT(
+                  DATETIME2,
+                  SWITCHOFFSET(
+                                  CONVERT(DATETIMEOFFSET, events.event_data.value('(@timestamp)[1]', 'DATETIME2')),
+                                  DATENAME(TZOFFSET, SYSDATETIMEOFFSET())
+                              )
+              ) DatetimeLocal,
+       events.event_data.value('(./@name)[1]', 'sysname') EventName,
+       events.event_data.value('(./data[@name="database_id"]/value)[1]', 'INT') DatabaseId,
+       IIF((events.event_data.value('(./data[@name="database_name"]/value)[1]', 'sysname')) <> '',
+           events.event_data.value('(./data[@name="database_name"]/value)[1]', 'sysname'),
+           events.event_data.value('(./action[@name="database_name"]/value)[1]', 'sysname')) DatabaseAffected,
+       events.event_data.value('(./action[@name="username"]/value)[1]', 'sysname') UserName,
+       events.event_data.value('(./action[@name="client_app_name"]/value)[1]', 'sysname') Client,
+       events.event_data.value('(./action[@name="sql_text"]/value)[1]', 'sysname') SQLStatement,
+       events.event_data.value('(./data[@name="object_name"]/value)[1]', 'sysname') ObjectName
 FROM Target_Data
-CROSS APPLY event_data.nodes('//event') AS events(event_data)
+    CROSS APPLY event_data.nodes('//event') AS events(event_data);
