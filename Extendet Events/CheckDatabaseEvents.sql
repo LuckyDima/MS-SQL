@@ -71,7 +71,20 @@ ON SERVER
          sqlserver.sql_text,
          sqlserver.username
      )
-    )
+    ),
+    ADD EVENT sqlserver.object_altered
+    (ACTION
+     (
+         sqlserver.client_app_name,
+         sqlserver.client_hostname,
+         sqlserver.database_name,
+         sqlserver.nt_username,
+         sqlserver.session_nt_username,
+         sqlserver.sql_text,
+         sqlserver.username
+     )
+     WHERE (sqlserver.sql_text LIKE '%sp_renamedb%' OR sqlserver.sql_text LIKE '%ALTER%DATABASE%MODIFY%NAME%')
+	 )
     ADD TARGET package0.event_file
     (SET filename = N'<FilePath>.xel', max_rollover_files = (1))
 WITH
