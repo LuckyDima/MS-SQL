@@ -17,7 +17,7 @@ ON SERVER
            )
     )
     ADD TARGET package0.event_file
-    (SET filename = N'<Path>\FailedLogins.xel', max_rollover_files = (1))
+    (SET filename = N'<FilePath>.xel', max_rollover_files = (1))
 WITH
 (
     MAX_MEMORY = 4096KB,
@@ -30,7 +30,7 @@ WITH
 );
 GO
 
-USE [YourDb]
+USE [YourDatabase]
 GO
 SET ANSI_NULLS ON
 GO
