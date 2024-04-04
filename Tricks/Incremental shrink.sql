@@ -1,5 +1,5 @@
 DECLARE @DbName sysname;
-DECLARE @Sql NVARCHAR(8000);
+DECLARE @Sql NVARCHAR(MAX);
 DECLARE @LogicalFileName sysname;
 DECLARE @FileSizeMB BIGINT;
 DECLARE @UsedMB BIGINT;
