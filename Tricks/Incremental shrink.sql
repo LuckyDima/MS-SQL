@@ -16,14 +16,14 @@ FETCH NEXT FROM file_cursor INTO @LogicalFileName;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @LogicalFileName;
+    SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128. FROM sys.sysfiles WHERE name = @LogicalFileName;
     WHILE @FileSizeMB > @UsedMB + @FreeSizeMB + @ShrinkStepMB
     BEGIN
         SET @Sql = 'USE ' + QUOTENAME(@DbName) + '; DBCC SHRINKFILE (' + QUOTENAME(@LogicalFileName) + ', ' + CONVERT(VARCHAR(20), @FileSizeMB - @ShrinkStepMB) + ') WITH NO_INFOMSGS';
         RAISERROR (N'Start %s', 0, 1, @Sql) WITH NOWAIT;
         EXEC (@Sql);
         RAISERROR('Done %s', 0, 1, @Sql) WITH NOWAIT;
-        SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @LogicalFileName;
+        SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128. FROM sys.sysfiles WHERE name = @LogicalFileName;
     END;
     FETCH NEXT FROM file_cursor INTO @LogicalFileName;
 END;
