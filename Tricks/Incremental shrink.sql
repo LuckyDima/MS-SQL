@@ -1,34 +1,33 @@
 DECLARE @DbName sysname;
-DECLARE @sql VARCHAR(8000);
-DECLARE @name sysname;
-DECLARE @sizeMB BIGINT;
+DECLARE @Sql NVARCHAR(8000);
+DECLARE @LogicalFileName sysname;
+DECLARE @FileSizeMB BIGINT;
 DECLARE @UsedMB BIGINT;
-DECLARE @FreeMB BIGINT = 1000;
-DECLARE @ShrinkMB BIGINT = 100;
+DECLARE @FreeSizeMB BIGINT = 1000;
+DECLARE @ShrinkStepMB BIGINT = 100;
 
 IF @DbName IS NULL RETURN;
 
-DECLARE file_cursor CURSOR FOR
-    SELECT name
-    FROM sys.master_files
-    WHERE type_desc = 'ROWS'; -- Мы выбираем только файлы данных
+DECLARE file_cursor CURSOR FAST_FORWARD LOCAL FORWARD_ONLY FOR 
+    SELECT name FROM sys.master_files WHERE type_desc = 'ROWS';
 
 OPEN file_cursor;
-FETCH NEXT FROM file_cursor INTO @name;
+FETCH NEXT FROM file_cursor INTO @LogicalFileName;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    SELECT @sizeMB = size/128., @UsedMB = FILEPROPERTY(@name, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @name;
-    WHILE @sizeMB > @UsedMB + @FreeMB + @ShrinkMB
+    SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @LogicalFileName;
+    WHILE @FileSizeMB > @UsedMB + @FreeSizeMB + @ShrinkStepMB
     BEGIN
-        SET @sql = 'USE ' + QUOTENAME(@DbName) + '; DBCC SHRINKFILE (' + QUOTENAME(@name) + ', ' + CONVERT(VARCHAR(20), @sizeMB - @ShrinkMB) + ') WITH NO_INFOMSGS';
-        RAISERROR (N'Start %s', 0, 1, @sql) WITH NOWAIT;
-        EXEC (@sql);
-        RAISERROR('Done %s', 0, 1, @sql) WITH NOWAIT;
-        SELECT @sizeMB = size/128., @UsedMB = FILEPROPERTY(@name, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @name;
+        SET @Sql = 'USE ' + QUOTENAME(@DbName) + '; DBCC SHRINKFILE (' + QUOTENAME(@LogicalFileName) + ', ' + CONVERT(VARCHAR(20), @FileSizeMB - @ShrinkStepMB) + ') WITH NO_INFOMSGS';
+        RAISERROR (N'Start %s', 0, 1, @Sql) WITH NOWAIT;
+        EXEC (@Sql);
+        RAISERROR('Done %s', 0, 1, @Sql) WITH NOWAIT;
+        SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, 'SpaceUsed')/128.	FROM sys.sysfiles WHERE name = @LogicalFileName;
     END;
-    FETCH NEXT FROM file_cursor INTO @name;
+    FETCH NEXT FROM file_cursor INTO @LogicalFileName;
 END;
 
 CLOSE file_cursor;
 DEALLOCATE file_cursor;
+
