@@ -18,7 +18,7 @@ DECLARE @Counter SMALLINT = 0;
 DECLARE @PreFileSizeMB BIGINT = 0;
 
     DECLARE file_cursor CURSOR FAST_FORWARD LOCAL FORWARD_ONLY FOR 
-        SELECT name FROM sys.master_files WHERE type_desc = @FileType AND database_id = DB_ID(@DbName);
+    SELECT name FROM sys.master_files WHERE type_desc = @FileType AND database_id = DB_ID(@DbName);
 
     OPEN file_cursor;
     FETCH NEXT FROM file_cursor INTO @LogicalFileName;
@@ -26,22 +26,22 @@ DECLARE @PreFileSizeMB BIGINT = 0;
     WHILE @@FETCH_STATUS = 0
     BEGIN
         SET @Sql = 'USE ' + QUOTENAME(@DbName) + '; SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName';
-		EXEC sys.sp_executesql @Sql, N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname', @FileSizeMB OUTPUT, @UsedMB OUTPUT, @LogicalFileName;
+	EXEC sys.sp_executesql @Sql, N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname', @FileSizeMB OUTPUT, @UsedMB OUTPUT, @LogicalFileName;
         WHILE @FileSizeMB > @UsedMB + @FreeSizeMB + @ShrinkStepMB
         BEGIN
             SET @Sql = 'USE ' + QUOTENAME(@DbName) + '; DBCC SHRINKFILE (' + QUOTENAME(@LogicalFileName) + ', ' + CONVERT(VARCHAR(20), @FileSizeMB - @ShrinkStepMB) + ') WITH NO_INFOMSGS';
             IF @WithInfo = 1 
-				RAISERROR (N'Start %s', 0, 1, @Sql) WITH NOWAIT;
-			IF @Counter < 3
-				EXEC sys.sp_executesql @stmt = @Sql;
+		    RAISERROR (N'Start %s', 0, 1, @Sql) WITH NOWAIT;
+	    IF @Counter < 3
+		    EXEC sys.sp_executesql @stmt = @Sql;
             IF @WithInfo = 1 
-				RAISERROR('Done %s', 0, 1, @Sql) WITH NOWAIT;
+		    RAISERROR('Done %s', 0, 1, @Sql) WITH NOWAIT;
             SET @Sql = 'USE ' + QUOTENAME(@DbName) + '; SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName';
-			EXEC sys.sp_executesql @Sql, N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname', @FileSizeMB OUTPUT, @UsedMB OUTPUT, @LogicalFileName;
-			IF @PreFileSizeMB <> @FileSizeMB
-				SELECT @PreFileSizeMB = @FileSizeMB, @Counter = 0;
-			ELSE 
-				SET @Counter += 1;
+	    EXEC sys.sp_executesql @Sql, N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname', @FileSizeMB OUTPUT, @UsedMB OUTPUT, @LogicalFileName;
+	    IF @PreFileSizeMB <> @FileSizeMB
+		    SELECT @PreFileSizeMB = @FileSizeMB, @Counter = 0;
+	    ELSE
+		    SET @Counter += 1;
         END;
         FETCH NEXT FROM file_cursor INTO @LogicalFileName;
     END;
