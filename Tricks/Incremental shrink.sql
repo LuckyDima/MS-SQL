@@ -4,7 +4,16 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE OR ALTER PROCEDURE [dbo].[IncrementalDbShrink] (@DbName sysname, @WithInfo BIT = 0, @FreeSizeMB BIGINT = 1000, @ShrinkStepMB BIGINT = 100, @FileType VARCHAR(16) = 'ROWS')
+CREATE OR ALTER PROCEDURE [dbo].[IncrementalDbShrink]
+(
+    @DbName sysname,
+    @WithInfo BIT = 0,
+    @FreeSizeMB BIGINT = 1024,
+    @ShrinkStepMB BIGINT = 128,
+    @FileType VARCHAR(16) = 'ROWS',
+    @Debug BIT = 0,
+    @ErrorMessage NVARCHAR(MAX) = '' OUTPUT
+)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -47,7 +56,12 @@ BEGIN
                                                    @DbName;
 
             IF @SPReturnCode <> 0
-                RAISERROR('Execution error in: %s', 0, 1, @Sql) WITH NOWAIT;
+            BEGIN
+                PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                      + ERROR_MESSAGE();
+                RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
+                BREAK;
+            END;
 
             SET @TotalSpaceToShrink = CONVERT(DECIMAL(18, 4), @FileSizeMB - @UsedMB - @FreeSizeMB);
 
