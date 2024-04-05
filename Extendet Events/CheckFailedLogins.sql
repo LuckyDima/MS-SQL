@@ -57,7 +57,7 @@ SELECT
     events.event_data.value('(./@name)[1]', 'sysname') EventName,
     IIF((events.event_data.value('(./data[@name="database_name"]/value)[1]', 'sysname')) <> '', events.event_data.value('(./data[@name="database_name"]/value)[1]', 'sysname'), events.event_data.value('(./action[@name="database_name"]/value)[1]', 'sysname')) DatabaseAffected,
     events.event_data.value('(./action[@name="client_app_name"]/value)[1]', 'sysname') Client,
-	events.event_data.value('(./data[@name="message"]/value)[1]', 'NVARCHAR(MAX)') Message
+    events.event_data.value('(./data[@name="message"]/value)[1]', 'NVARCHAR(MAX)') Message
 FROM Target_Data
 CROSS APPLY event_data.nodes('//event') AS events(event_data)
 )
