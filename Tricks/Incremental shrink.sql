@@ -57,9 +57,9 @@ BEGIN
 
             IF @SPReturnCode <> 0
             BEGIN
-                PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                      + ERROR_MESSAGE();
-                RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
+                SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
+                RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
                 BREAK;
             END;
 
@@ -83,9 +83,9 @@ BEGIN
                     EXEC @SPReturnCode = sys.sp_executesql @stmt = @Sql;
                     IF @SPReturnCode <> 0
                     BEGIN
-                        PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                              + ERROR_MESSAGE();
-                        RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
+                        SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
+                        RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
                         BREAK;
                     END;
                 END;
@@ -111,9 +111,9 @@ BEGIN
 
                 IF @SPReturnCode <> 0
                 BEGIN
-                    PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                          + ERROR_MESSAGE();
-                    RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
+                    SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
+                    RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
                     BREAK;
                 END;
 
@@ -145,5 +145,6 @@ BEGIN
         PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: ' + ERROR_MESSAGE();
     END CATCH;
 END;
+
 
 
