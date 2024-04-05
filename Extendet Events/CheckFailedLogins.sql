@@ -50,6 +50,8 @@ WITH Target_Data AS
             ORDER BY xes.create_time DESC 
         ), NULL, NULL, NULL   )
 )
+, GetInfo AS
+(
 SELECT 
     CONVERT(DATETIME2, SWITCHOFFSET(CONVERT(DATETIMEOFFSET, events.event_data.value('(@timestamp)[1]', 'DATETIME2')), DATENAME(TZOFFSET, SYSDATETIMEOFFSET()))) DatetimeLocal,
     events.event_data.value('(./@name)[1]', 'sysname') EventName,
@@ -58,4 +60,9 @@ SELECT
 	events.event_data.value('(./data[@name="message"]/value)[1]', 'NVARCHAR(MAX)') Message
 FROM Target_Data
 CROSS APPLY event_data.nodes('//event') AS events(event_data)
-GO
+)
+SELECT 
+	GetInfo.*,
+	SUBSTRING(Message, CHARINDEX('''', Message) + 1, CHARINDEX('''', Message, CHARINDEX('''', Message) + 1) - CHARINDEX('''', Message) - 1) UserName,
+	IIF(Message LIKE '% database ''%',SUBSTRING(Message, PATINDEX('%database ''%', Message) + LEN('database '''), CHARINDEX('''', Message, PATINDEX('%database ''%', Message) + LEN('database ''')) - (PATINDEX('%database ''%', Message) + LEN('database '''))), NULL) DatabaseName
+FROM GetInfo 
