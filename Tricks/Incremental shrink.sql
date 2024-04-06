@@ -1,8 +1,8 @@
 USE [YourDatabase]
 GO
-SET ANSI_NULLS ON
+SET ANSI_NULLS ON;
 GO
-SET QUOTED_IDENTIFIER ON
+SET QUOTED_IDENTIFIER ON;
 GO
 CREATE OR ALTER PROCEDURE [dbo].[IncrementalDbShrink]
 (
@@ -23,7 +23,7 @@ BEGIN
     DECLARE @LogicalFileName sysname;
     DECLARE @FileSizeMB BIGINT;
     DECLARE @UsedMB BIGINT;
-    DECLARE @Counter SMALLINT = 0;
+    DECLARE @Enumerator SMALLINT = 1;
     DECLARE @PreFileSizeMB BIGINT = 0;
     DECLARE @SPReturnCode SMALLINT;
     DECLARE @TotalSpaceToShrink DECIMAL(18, 4);
@@ -46,7 +46,7 @@ BEGIN
         BEGIN
             SET @Sql
                 = N'USE ' + QUOTENAME(@DbName)
-                  + N'; SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
+                  + N' SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
 
             EXEC @SPReturnCode = sys.sp_executesql @Sql,
                                                    N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname, @DbName sysname',
@@ -57,9 +57,9 @@ BEGIN
 
             IF @SPReturnCode <> 0
             BEGIN
-                SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
-                RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
+                PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                      + ERROR_MESSAGE();
+                RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
                 BREAK;
             END;
 
@@ -69,28 +69,36 @@ BEGIN
             BEGIN
                 SET @Sql
                     = N'USE ' + QUOTENAME(@DbName) + N'; DBCC SHRINKFILE (' + QUOTENAME(@LogicalFileName) + N', '
-                      + CONVERT(VARCHAR(20), @FileSizeMB - @ShrinkStepMB) + N') WITH NO_INFOMSGS';
+                      + CONVERT(VARCHAR(20), @FileSizeMB - @ShrinkStepMB * @Enumerator) + N') WITH NO_INFOMSGS';
 
                 IF @Debug = 1
                 BEGIN
-                    RAISERROR('Counter is: %s', 0, 1, @Counter) WITH NOWAIT;
+                    RAISERROR('Counter is: %s', 0, 1, @Enumerator) WITH NOWAIT;
                     RAISERROR('The first command: %s', 0, 1, @Sql) WITH NOWAIT;
                 END;
 
-                IF @Counter < 3
+                IF @Enumerator <= 5
                    AND @Debug = 0
                 BEGIN
                     EXEC @SPReturnCode = sys.sp_executesql @stmt = @Sql;
                     IF @SPReturnCode <> 0
                     BEGIN
-                        SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
-                        RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
+                        PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                              + ERROR_MESSAGE();
+                        RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
                         BREAK;
                     END;
                 END;
                 ELSE
+                BEGIN
+                    RAISERROR(
+                                 'Advice. You could try to increase or decrease a @ShrinkStepMB value. Current value is: %s',
+                                 0,
+                                 1,
+                                 @ShrinkStepMB
+                             ) WITH NOWAIT;
                     BREAK;
+                END;
 
                 IF @WithInfo = 1
                 BEGIN
@@ -101,7 +109,7 @@ BEGIN
 
                 SET @Sql
                     = N'USE ' + QUOTENAME(@DbName)
-                      + N'; SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
+                      + N' SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
                 EXEC @SPReturnCode = sys.sp_executesql @Sql,
                                                        N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname, @DbName sysname',
                                                        @FileSizeMB OUTPUT,
@@ -111,24 +119,24 @@ BEGIN
 
                 IF @SPReturnCode <> 0
                 BEGIN
-                    SET @ErrorMessage = 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
-                              + ERROR_MESSAGE() + ' Statement: ' + @Sql;
-                    RAISERROR('Statement execution failed! %s', 0, 1, @ErrorMessage) WITH NOWAIT;
+                    PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: '
+                          + ERROR_MESSAGE();
+                    RAISERROR('Statement execution failed! %s', 0, 1, @Sql) WITH NOWAIT;
                     BREAK;
                 END;
 
                 IF @PreFileSizeMB <> @FileSizeMB
                 BEGIN
                     SELECT @PreFileSizeMB = @FileSizeMB,
-                           @Counter = 0;
+                           @Enumerator = 1;
                     SET @SpaceShrinkedNow = @SpaceShrinkedNow + @ShrinkStepMB;
                 END;
                 ELSE
-                    SET @Counter += 1;
+                    SET @Enumerator += 1;
 
                 IF @Debug = 1
                 BEGIN
-                    DECLARE @Parameters NVARCHAR = CONCAT_WS(@PreFileSizeMB, @FileSizeMB, ',');
+                    DECLARE @Parameters NVARCHAR(128) = CONCAT_WS(@PreFileSizeMB, @FileSizeMB, ',');
                     RAISERROR('The second command: %s', 0, 1, @Sql) WITH NOWAIT;
                     RAISERROR('Parameters @PreFileSizeMB, @FileSizeMB: %s', 0, 1, @Parameters) WITH NOWAIT;
                 END;
@@ -145,6 +153,7 @@ BEGIN
         PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: ' + ERROR_MESSAGE();
     END CATCH;
 END;
+
 
 
 
