@@ -48,12 +48,12 @@ BEGIN
                 = N'USE ' + QUOTENAME(@DbName)
                   + N' SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
 
-            EXEC @SPReturnCode = sys.sp_executesql @Sql,
-                                                   N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname, @DbName sysname',
-                                                   @FileSizeMB OUTPUT,
-                                                   @UsedMB OUTPUT,
-                                                   @LogicalFileName,
-                                                   @DbName;
+            EXEC @SPReturnCode = sys.sp_executesql @stmt = @Sql,
+                                                   @params = N'@LogicalFileName sysname, @DbName sysname, @FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT',
+                                                   @LogicalFileName = @LogicalFileName,
+                                                   @DbName = @DbName,
+                                                   @FileSizeMB = @FileSizeMB OUTPUT,
+                                                   @UsedMB = @UsedMB OUTPUT;
 
             IF @SPReturnCode <> 0
             BEGIN
@@ -110,12 +110,12 @@ BEGIN
                 SET @Sql
                     = N'USE ' + QUOTENAME(@DbName)
                       + N' SELECT @FileSizeMB = size/128., @UsedMB = FILEPROPERTY(@LogicalFileName, ''SpaceUsed'')/128. FROM sys.master_files WHERE name = @LogicalFileName AND database_id = DB_ID(@DbName)';
-                EXEC @SPReturnCode = sys.sp_executesql @Sql,
-                                                       N'@FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT, @LogicalFileName sysname, @DbName sysname',
-                                                       @FileSizeMB OUTPUT,
-                                                       @UsedMB OUTPUT,
-                                                       @LogicalFileName,
-                                                       @DbName;
+                EXEC @SPReturnCode = sys.sp_executesql @stmt = @Sql,
+                                                       @params = N'@LogicalFileName sysname, @DbName sysname, @FileSizeMB BIGINT OUTPUT, @UsedMB BIGINT OUTPUT',
+                                                       @LogicalFileName = @LogicalFileName,
+                                                       @DbName = @DbName,
+                                                       @FileSizeMB = @FileSizeMB OUTPUT,
+                                                       @UsedMB = @UsedMB OUTPUT;
 
                 IF @SPReturnCode <> 0
                 BEGIN
@@ -136,7 +136,7 @@ BEGIN
 
                 IF @Debug = 1
                 BEGIN
-                    DECLARE @Parameters NVARCHAR(128) = CONCAT_WS(@PreFileSizeMB, @FileSizeMB, ',');
+                    DECLARE @Parameters NVARCHAR = CONCAT_WS(@PreFileSizeMB, @FileSizeMB, ',');
                     RAISERROR('The second command: %s', 0, 1, @Sql) WITH NOWAIT;
                     RAISERROR('Parameters @PreFileSizeMB, @FileSizeMB: %s', 0, 1, @Parameters) WITH NOWAIT;
                 END;
@@ -153,7 +153,3 @@ BEGIN
         PRINT 'Error! Code return: ' + CAST(@SPReturnCode AS NVARCHAR(10)) + '. Error message: ' + ERROR_MESSAGE();
     END CATCH;
 END;
-
-
-
-
