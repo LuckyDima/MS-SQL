@@ -136,7 +136,7 @@ BEGIN
 
                 IF @Debug = 1
                 BEGIN
-                    DECLARE @Parameters NVARCHAR = CONCAT_WS(@PreFileSizeMB, @FileSizeMB, ',');
+                    DECLARE @Parameters NVARCHAR(MAX) = CONCAT(@PreFileSizeMB, ', ', @FileSizeMB);
                     RAISERROR('The second command: %s', 0, 1, @Sql) WITH NOWAIT;
                     RAISERROR('Parameters @PreFileSizeMB, @FileSizeMB: %s', 0, 1, @Parameters) WITH NOWAIT;
                 END;
