@@ -31,3 +31,39 @@ WITH
 GO
 ALTER EVENT SESSION [TrackingLogins] ON SERVER STATE = START;
 GO
+
+USE [YourDatabase]
+GO
+
+CREATE OR ALTER VIEW dbo.CheckTrackingLogins
+AS
+WITH Target_Data
+AS (SELECT CAST(event_data AS XML) AS event_data
+    FROM sys.fn_xe_file_target_read_file(
+         (
+             SELECT TOP (1)
+                    CAST(xet.target_data AS XML).value('(EventFileTarget/File/@name)[1]', 'NVARCHAR(MAX)') FileName
+             FROM sys.dm_xe_session_targets xet
+                 JOIN sys.dm_xe_sessions xes
+                     ON xes.address = xet.event_session_address
+             WHERE xes.name = 'TrackingLogins'
+                   AND xet.target_name = 'event_file'
+             ORDER BY xes.create_time DESC
+         ),
+         NULL,
+         NULL,
+         NULL
+                                        ) )
+SELECT CONVERT(
+                  DATETIME2,
+                  SWITCHOFFSET(
+                                  CONVERT(DATETIMEOFFSET, events.event_data.value('(@timestamp)[1]', 'DATETIME2')),
+                                  DATENAME(TZOFFSET, SYSDATETIMEOFFSET())
+                              )
+              ) DatetimeLocal,
+       events.event_data.value('(./@name)[1]', 'sysname') EventName,
+	   events.event_data.value('(./action[@name="server_principal_name"]/value)[1]', 'sysname') Executer,
+	   events.event_data.value('(./action[@name="client_hostname"]/value)[1]', 'NVARCHAR(256)') HostName,
+       events.event_data.value('(./action[@name="sql_text"]/value)[1]', 'VARCHAR(MAX)') SQLStatement
+FROM Target_Data
+    CROSS APPLY event_data.nodes('//event') AS events(event_data);
