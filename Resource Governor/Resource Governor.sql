@@ -1,11 +1,11 @@
-!!!!!!!!!!!!!!!!!!!!!Важно!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!Р’Р°Р¶РЅРѕ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 --------------------------------------------------------------------
---DB_NAME() не работатет, используем вместо нее ORIGINAL_DB_NAME()--
+--DB_NAME() РЅРµ СЂР°Р±РѕС‚Р°С‚РµС‚, РёСЃРїРѕР»СЊР·СѓРµРј РІРјРµСЃС‚Рѕ РЅРµРµ ORIGINAL_DB_NAME()--
 --------------------------------------------------------------------
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
---Создание пулов ресурсов с указанием ресурсов которые может использовать данный пул
+--РЎРѕР·РґР°РЅРёРµ РїСѓР»РѕРІ СЂРµСЃСѓСЂСЃРѕРІ СЃ СѓРєР°Р·Р°РЅРёРµРј СЂРµСЃСѓСЂСЃРѕРІ РєРѕС‚РѕСЂС‹Рµ РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР°РЅРЅС‹Р№ РїСѓР»
 CREATE RESOURCE POOL [HighPriority] WITH(min_cpu_percent=0, 
 		max_cpu_percent=80, 
 		min_memory_percent=0, 
@@ -22,7 +22,7 @@ CREATE RESOURCE POOL [LowPriority] WITH(min_cpu_percent=0,
 		max_memory_percent=20)
 GO
 
---Создание функции для регулятора ресурсов
+--РЎРѕР·РґР°РЅРёРµ С„СѓРЅРєС†РёРё РґР»СЏ СЂРµРіСѓР»СЏС‚РѕСЂР° СЂРµСЃСѓСЂСЃРѕРІ
 use master
 go
 if exists (select 1 from sys.objects where name = 'ResourceGovernorCclassifyFunction' and type = 'FN' and schema_id = schema_id('dbo')) 
@@ -36,34 +36,34 @@ create function dbo.ResourceGovernorCclassifyFunction() returns sysname
 with schemabinding
 as begin
     declare @grp_name as sysname   
-     --Как настроить ргулятор читаем тут http://blogs.technet.com/b/isv_team/archive/2011/03/31/3417692.aspx
-    if (SUSER_SNAME() = 'LOGIN' or SUSER_SNAME()= 'LOGIN') set @grp_name = 'HighPriority' --пользователь с таким-то логином будет направлен в группу HighPriority
-    else if (SUSER_SNAME() = 'LOGIN') set @grp_name = 'MediumPriority' --пользователь с таким-то логином будет направлен в группу MediumPriority
-    else if (SUSER_SNAME() = 'LOGIN') set @grp_name = 'LowPriority' --пользователь с таким-то логином будет направлен в группу LowPriority
-    -- Остальные сессии будут работать в контексте Default
+     --РљР°Рє РЅР°СЃС‚СЂРѕРёС‚СЊ СЂРіСѓР»СЏС‚РѕСЂ С‡РёС‚Р°РµРј С‚СѓС‚ http://blogs.technet.com/b/isv_team/archive/2011/03/31/3417692.aspx
+    if (SUSER_SNAME() = 'LOGIN' or SUSER_SNAME()= 'LOGIN') set @grp_name = 'HighPriority' --РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј-С‚Рѕ Р»РѕРіРёРЅРѕРј Р±СѓРґРµС‚ РЅР°РїСЂР°РІР»РµРЅ РІ РіСЂСѓРїРїСѓ HighPriority
+    else if (SUSER_SNAME() = 'LOGIN') set @grp_name = 'MediumPriority' --РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј-С‚Рѕ Р»РѕРіРёРЅРѕРј Р±СѓРґРµС‚ РЅР°РїСЂР°РІР»РµРЅ РІ РіСЂСѓРїРїСѓ MediumPriority
+    else if (SUSER_SNAME() = 'LOGIN') set @grp_name = 'LowPriority' --РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј-С‚Рѕ Р»РѕРіРёРЅРѕРј Р±СѓРґРµС‚ РЅР°РїСЂР°РІР»РµРЅ РІ РіСЂСѓРїРїСѓ LowPriority
+    -- РћСЃС‚Р°Р»СЊРЅС‹Рµ СЃРµСЃСЃРёРё Р±СѓРґСѓС‚ СЂР°Р±РѕС‚Р°С‚СЊ РІ РєРѕРЅС‚РµРєСЃС‚Рµ Default
     return @grp_name
 end
 go
 
--- Включаем регулятор и присваеваем ему функцию
+-- Р’РєР»СЋС‡Р°РµРј СЂРµРіСѓР»СЏС‚РѕСЂ Рё РїСЂРёСЃРІР°РµРІР°РµРј РµРјСѓ С„СѓРЅРєС†РёСЋ
 
-alter resource governor with (classifier_function = 'ResourceGovernorCclassifyFunction') -- чтобы отключить присвойте null
+alter resource governor with (classifier_function = 'ResourceGovernorCclassifyFunction') -- С‡С‚РѕР±С‹ РѕС‚РєР»СЋС‡РёС‚СЊ РїСЂРёСЃРІРѕР№С‚Рµ null
 alter resource governor reconfigure
 alter resource governor enable
 alter resource governor reconfigure
 
  
 
--- Проверка регулятора ресурсов
+-- РџСЂРѕРІРµСЂРєР° СЂРµРіСѓР»СЏС‚РѕСЂР° СЂРµСЃСѓСЂСЃРѕРІ
 select * from sys.resource_governor_resource_pools
 select * from sys.resource_governor_workload_groups
 
 
 
 
---------------------------------Доп. Скрипты-------------------------------
+--------------------------------Р”РѕРї. РЎРєСЂРёРїС‚С‹-------------------------------
 
---Вкл.\выкл. ресурс гувернер
+--Р’РєР».\РІС‹РєР». СЂРµСЃСѓСЂСЃ РіСѓРІРµСЂРЅРµСЂ
 ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = NULL);
 GO
 ALTER RESOURCE GOVERNOR RECONFIGURE;
@@ -75,7 +75,7 @@ ALTER RESOURCE GOVERNOR RECONFIGURE;
 GO
 
 
---Убить все сессии в дефолтовой группе
+--РЈР±РёС‚СЊ РІСЃРµ СЃРµСЃСЃРёРё РІ РґРµС„РѕР»С‚РѕРІРѕР№ РіСЂСѓРїРїРµ
 declare @i int, @k int
 declare @Command varchar(50);
 set @k=100
