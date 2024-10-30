@@ -1,0 +1,6 @@
+SELECT ISNULL(CAST(database_id AS NCHAR(12)), '') AS [DB ID],
+       ISNULL(DB_NAME(database_id), IIF(database_id IS NOT NULL, 'system', '<--Total-->')) AS [DB Name],
+       CONVERT(DECIMAL(11, 3), COUNT(*) * 8 / 1024.0) AS [Buffer Pool Size (MB)]
+FROM sys.dm_os_buffer_descriptors WITH (NOLOCK)
+GROUP BY CUBE(database_id)
+ORDER BY [Buffer Pool Size (MB)];
